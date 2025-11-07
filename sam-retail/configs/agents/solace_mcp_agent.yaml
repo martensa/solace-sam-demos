@@ -1,0 +1,64 @@
+# configs/agents/solace_mcp_agent.yaml
+log:
+  stdout_log_level: INFO
+  log_file_level: DEBUG
+  log_file: solace_mcp_agent.log
+
+!include ../shared_config.yaml
+
+apps:
+  - name: solace_mcp_agent_app
+    app_base_path: .
+    app_module: solace_agent_mesh.agent.sac.app
+    broker:
+      <<: *broker_connection
+
+    app_config:
+      namespace: ${NAMESPACE}
+      supports_streaming: true
+      agent_name: "SolaceMCPAgent"
+      display_name: "Solace Monitoring MCP"
+      model: *general_model
+      
+      instruction: |
+        You can interact with Solace PubSub+ event brokers for comprehensive monitoring and management. 
+        Please make sure to handle pagination properly.
+        Use the available tools based on the Solace PubSub+ OpenAPI specification to execute SEMP commands on Solace PubSub+ brokers.
+      tools:
+        - tool_type: mcp
+          connection_params:
+            type: stdio
+            command: "uv"
+            args:
+              - --directory
+              - /Users/alexandermartens/Repositories/solace-platform-mcp/solace-monitoring-mcp-server/
+              - run
+              - solace_monitoring_mcp_server.py
+          environment_variables:
+            OPENAPI_SPEC: "${SOLACE_SEMPV2_OPENAPI_SPEC}"
+            SOLACE_SEMPV2_BASE_URL: "${SOLACE_SEMPV2_BASE_URL}"
+            SOLACE_SEMPV2_AUTH_METHOD: "${SOLACE_SEMPV2_AUTH_METHOD}"
+            SOLACE_SEMPV2_USERNAME: "${SOLACE_SEMPV2_USERNAME}"
+            SOLACE_SEMPV2_PASSWORD: "${SOLACE_SEMPV2_PASSWORD}"
+            MCP_API_INCLUDE_METHODS: "GET,POST,DELETE,PUT"
+            MCP_API_EXCLUDE_TAGS: "deprecated"
+            MCP_LOG_LEVEL: "INFO"
+            MCP_LOG_FILE: "solace_mcp_server.log"
+        - tool_type: builtin-group
+          group_name: "artifact_management"
+
+      session_service: *default_session_service
+      artifact_service: *default_artifact_service
+
+      # Agent discovery and communication
+      agent_card:
+        description: "An agent that interacts with Solace PubSub+ event brokers for comprehensive monitoring and management via MCP."
+        defaultInputModes: ["text"]
+        defaultOutputModes: ["text", "file"]
+        skills: []
+
+      agent_card_publishing: { interval_seconds: 10 }
+      agent_discovery: { enabled: true }
+      inter_agent_communication:
+        allow_list: ["*"]
+        request_timeout_seconds: 30
